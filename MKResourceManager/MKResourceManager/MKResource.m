@@ -11,6 +11,10 @@
 #import "MKResourceManager.h"
 #import "MKResourceManager+Private.h"
 
+
+@interface MKResource ()
+@end
+
 @implementation MKResource
 @synthesize status                  = _status;
 @synthesize resourceURL             = _resourceURL;
@@ -28,6 +32,7 @@
     self = [super init];
     if (self != nil) {
         _watchers = [[NSMutableArray alloc] init];
+        _completionHandlers = [[NSMutableArray alloc] init];
         _manager = manager;
         _resourceURL = [aURL copy];
         _expectedContentLength = 0;
@@ -57,7 +62,7 @@
     self = [super init];
     if ([aDecoder isKindOfClass:[NSKeyedUnarchiver class]]) {
         NSKeyedUnarchiver* decoder = (NSKeyedUnarchiver*)aDecoder;
-        _status = [decoder decodeIntegerForKey:@"status_"];
+        _status = (MKStatus)[decoder decodeIntegerForKey:@"status_"];
         _resourceURL = [decoder decodeObjectForKey:@"resourceURL_"];
         _contentType = [decoder decodeObjectForKey:@"contentType_"];
         _expectedContentLength = [[decoder decodeObjectForKey:@"expectedContentLength_"] longLongValue];
@@ -135,6 +140,11 @@
             [watcher resourceDidCancelDownload:self];
         }
     }
+
+    for (void (^completionHandler)(MKResource* resource, NSData* data, NSError* error) in _completionHandlers) {
+        completionHandler(self, nil, nil);
+    }
+    [_completionHandlers removeAllObjects];
 }
 
 - (void)addWatcher:(id<MKResourceStatusWatcher>)watcher {
@@ -147,6 +157,13 @@
 - (void)removeWatcher:(id<MKResourceStatusWatcher>)watcher {
     NSValue* nonRetainedWatcher = [NSValue valueWithNonretainedObject:watcher];
     [_watchers removeObject:nonRetainedWatcher];
+}
+
+- (void)addCompletionHandler:(void (^)(MKResource* resource, NSData* data, NSError* error))completion {
+    if (completion != NULL) {
+        id blockCopy = [completion copy];
+        [_completionHandlers addObject:blockCopy];
+    }
 }
 
 - (NSArray*)watchers {
@@ -210,6 +227,7 @@
 }
 
 - (void)notifyDidCancelDownload {
+    
 	id<MKResourceStatusWatcher> watcher = nil;
     NSArray* watchers = [_watchers copy];
 	for (NSValue *nonRetainedWacher in watchers) {
@@ -218,9 +236,16 @@
 			[watcher resourceDidCancelDownload:self];
 		}
 	}
+    
+    for (void (^completionHandler)(MKResource* resource, NSData* data, NSError* error) in _completionHandlers) {
+        completionHandler(self, nil, nil);
+    }
+    [_completionHandlers removeAllObjects];
+
 }
 
 - (void)notifyDidFinishDownload:(NSError*)error {
+
     id<MKResourceStatusWatcher> watcher = nil;
     NSArray* watchers = [_watchers copy];
     for (NSValue* nonRetainedWacher in watchers) {
@@ -229,6 +254,11 @@
             [watcher resource:self loadCompletedWithError:error];
         }
     }
+
+    for (void (^completionHandler)(MKResource* resource, NSData* data, NSError* error) in _completionHandlers) {
+        completionHandler(self, [self data], [self lastError]);
+    }
+    [_completionHandlers removeAllObjects];
 }
 
 - (void)didFinishDownloadMR:(NSData*)data error:(NSError*)error {

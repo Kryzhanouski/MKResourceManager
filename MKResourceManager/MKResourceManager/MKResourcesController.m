@@ -53,6 +53,8 @@
     if (resource == nil) {
         return;
     }
+    _manager = [resource manager];
+    
     [resource addWatcher:self];
     [_resources addObject:resource];
 
@@ -82,12 +84,15 @@
 }
 
 - (MKResource*)resourceForURL:(NSString*)resourceURL {
-    NSPredicate* predicate = [NSPredicate predicateWithFormat:@"url == %@",resourceURL];
-    NSArray* result = [_resources filteredArrayUsingPredicate:predicate];
-    if ([result count] > 0) {
-        return (MKResource*)[result objectAtIndex:0];
+    NSUInteger ind = [_resources indexOfObjectPassingTest:^BOOL(MKResource* obj, NSUInteger idx, BOOL *stop) {
+        *stop = [[obj resourceURL].absoluteString isEqualToString:resourceURL];
+        return *stop;
+    }];
+    MKResource* res = nil;
+    if (ind != NSNotFound) {
+        res = _resources[ind];
     }
-    return nil;
+    return res;
 }
 
 - (NSUInteger)indexOfResource:(MKResource*)resource {
@@ -149,7 +154,7 @@
     }
 
     if (didFinish == YES) {
-        [self didFinishDownloadMR:nil error:nil];
+        [self notifyDidFinishDownload:nil];
     }
 }
 

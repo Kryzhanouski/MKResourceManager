@@ -30,7 +30,8 @@ typedef enum {
  */
 @interface MKResource : NSObject<NSCoding> {
     NSMutableArray*             _watchers;
-    MKResourceManager*    _manager;
+    NSMutableArray*             _completionHandlers;
+    MKResourceManager*          _manager;
     MKStatus                   _status;
     NSURL*                      _resourceURL;
     NSString*                   _contentType;
@@ -86,6 +87,12 @@ typedef enum {
  *  @see MKResourceStatusWatcher
  */
 - (void)removeWatcher:(id<MKResourceStatusWatcher>)watcher;
+
+/** Adds completion handler that will be notified when status changes.
+ *  @param completion completion handler that will be invoked. The watcher is stronged. Will be removed automatically when download is completed
+ */
+- (void)addCompletionHandler:(void (^)(MKResource* resource, NSData* data, NSError* error))completion;
+
 @end
 
 // ! MKResourceStatusWatcher is protocol that should be implemented by resource watcher.

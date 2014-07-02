@@ -110,7 +110,7 @@
     
     _statusCode = [httpResponse statusCode];
     NSDictionary* dict = [httpResponse allHeaderFields];
-    NSLog(@"response headers = %@ with status code: %d", dict, _statusCode);//Info
+    NSLog(@"response headers = %@ with status code: %ld", dict, (long)_statusCode);//Info
 
     NSString* contentType = [dict objectForKey:@"Content-Type"];
     if (contentType == nil || [contentType isEqualToString:@""]) {
@@ -123,7 +123,7 @@
 }
 
 - (void)connection:(NSURLConnection*)connection didReceiveData:(NSData*)incrementalData {
-    int code = _statusCode / 100;
+    long code = _statusCode / 100;
     if (code == 2) {
         [self.urlData appendData:incrementalData];
         NSUInteger downloadedLength = [self.urlData length];

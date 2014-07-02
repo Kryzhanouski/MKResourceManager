@@ -76,6 +76,8 @@
 - (NSData*)dataForResourceForNSURL:(NSURL*)aURL;
 - (NSData *)dataForResourceForNSURL:(NSURL *)aURL error:(NSError**)error;
 
+- (NSURL*)pathForResource:(MKResource*)resource;
+
 /** Sets resource data and if data is not nil marks the corresponding resource as downloaded.
  *	@param data NSData object with content of resource
  *	@param aURL Resource URL
@@ -99,12 +101,12 @@
  */
 - (void)registerCustomResourceClass:(Class)aClass;
 
-/** 
+/**
  * Suspends all active downloads
  */
 - (void)suspend;
 
-/** 
+/**
  * Resumes all suspended downloads
  */
 - (void)resume;

@@ -90,36 +90,36 @@ NSUInteger const MKMediaResourceMaxConcurrentDownloadsCount = 10;
     NSString* pathToResource = nil;
     BOOL isDirectory = NO;
     BOOL fileExists = NO;
-
+    
     for (MKResource* res in resources) {
         pathToResource = [self fullFilePath:[res.resourceURL absoluteString]];
         fileExists = [[NSFileManager defaultManager] fileExistsAtPath:pathToResource isDirectory:&isDirectory];
-
+        
         if (!isDirectory && fileExists) {
-              // now check for resource's expiration time; lastAccessDate should be earlier, so multiply by -1.0
+            // now check for resource's expiration time; lastAccessDate should be earlier, so multiply by -1.0
             NSTimeInterval passedPeriod = [res.lastAccessDate timeIntervalSinceNow] * -1.0;
             if (res.expirationPeriod > 0.0 &&
                 passedPeriod >= res.expirationPeriod) {
-                  // only resources with expiration period greater than 0.0 are cleaned;
-                  // this resource should be removed if passed period is greater than resource's expiration period
+                // only resources with expiration period greater than 0.0 are cleaned;
+                // this resource should be removed if passed period is greater than resource's expiration period
                 [self removeResourceFromStorage:res];
             } else {
                 [validResources addObject:res];
             }
         }
     }
-
+    
     return [NSArray arrayWithArray:validResources];
 }
 
 - (void)restoreResources {
     NSString* resourceInfoPath = [self.pathCache stringByAppendingPathComponent:MKMediaResourceSavedResourcesFileName];
-
+    
     NSData* data = [NSData dataWithContentsOfFile:resourceInfoPath];
     NSArray* restoredResources = data == nil ? nil : [NSKeyedUnarchiver unarchiveObjectWithData:data];
-
+    
     NSArray* validatedResources = [self validateResources:restoredResources];
-
+    
     for (MKResource* resource in validatedResources) {
         [resource setResourceManager:self];
         [_statusByURL setObject:resource forKey:[resource.resourceURL absoluteString]];
@@ -140,13 +140,13 @@ NSUInteger const MKMediaResourceMaxConcurrentDownloadsCount = 10;
     
     NSString* resourceInfoPath = [self.pathCache stringByAppendingPathComponent:MKMediaResourceSavedResourcesFileName];
     NSMutableArray* resourcesToSave = [NSMutableArray array];
-
+    
     for (MKResource* resource in [_statusByURL allValues]) {
         if (resource.status == MKStatusDownloaded) {
             [resourcesToSave addObject:resource];
         }
     }
-
+    
     dispatch_async(_saveResourceInfoQueue, ^{
         NSData* data = [NSKeyedArchiver archivedDataWithRootObject:resourcesToSave];
         BOOL achivresult = [data writeToFile:resourceInfoPath atomically:YES];
@@ -158,7 +158,7 @@ NSUInteger const MKMediaResourceMaxConcurrentDownloadsCount = 10;
             [MKResourceUtility markNonPurgeableNonBackedUpFileAtURL:fileURL];
         }
     });
-
+    
     _lastTimeWhenResourceInfoSaved = [NSDate timeIntervalSinceReferenceDate];
     _saveDalayed = NO;
 }
@@ -193,16 +193,16 @@ NSUInteger const MKMediaResourceMaxConcurrentDownloadsCount = 10;
         MKResourceDownloadWork* work = [[MKResourceDownloadWork alloc] init];
         [_workDictionary setObject:work forKey:[resource.resourceURL absoluteString]];
         [work startDownloadWork:resource manager:self httpClient:_httpClient];
-//        [[MKNetworkActivity sharedInstance] incrementLoadingItems];
+        //        [[MKNetworkActivity sharedInstance] incrementLoadingItems];
     }
 }
 
 - (void)startDownloadResource:(MKResource*)resource {
     if (resource != nil) {
         if (_suspended) {
-            [_suspendedResources addObject:resource];        
+            [_suspendedResources addObject:resource];
         } else {
-        resource.lastAccessDate = [NSDate date];
+            resource.lastAccessDate = [NSDate date];
             [resource setLastError:nil];
             [resource setStatus:MKStatusInProgress];
             [self enqueueResource:resource];
@@ -216,14 +216,14 @@ NSUInteger const MKMediaResourceMaxConcurrentDownloadsCount = 10;
         if ([resource isKindOfClass:[MKCustomResource class]]) {
             [(MKCustomResource*) resource cancelCustomDownload];
         } else {
-//            [[MKNetworkActivity sharedInstance] decrementLoadingItems];
+            //            [[MKNetworkActivity sharedInstance] decrementLoadingItems];
             MKResourceDownloadWork* work = (MKResourceDownloadWork*)[_workDictionary objectForKey:[resource.resourceURL absoluteString]];
             [work cancelLoading];
             [_workDictionary removeObjectForKey:[resource.resourceURL absoluteString]];
         }
-
+        
         if (_suspended) {
-            [_suspendedResources addObject:resource];        
+            [_suspendedResources addObject:resource];
         } else {
             [resource setStatus:MKStatusNotDownloaded];
             [resource notifyDidCancelDownload];
@@ -239,7 +239,7 @@ NSUInteger const MKMediaResourceMaxConcurrentDownloadsCount = 10;
 - (void)didFinishDownloadResource:(MKResource *)resource data:(NSData *)data error:(NSError *)error httpResponse:(NSHTTPURLResponse*)httpResponse {
     [_workDictionary removeObjectForKey:[resource.resourceURL absoluteString]];
     if ([resource isKindOfClass:[MKCustomResource class]] == NO) {
-//        [[MKNetworkActivity sharedInstance] decrementLoadingItems];
+        //        [[MKNetworkActivity sharedInstance] decrementLoadingItems];
     }
     
     if (_suspended || [error code] == 401) {
@@ -258,13 +258,14 @@ NSUInteger const MKMediaResourceMaxConcurrentDownloadsCount = 10;
 
 - (NSData*)dataForResource:(MKResource *)resource error:(NSError**)error {
     NSData* decryptedData = nil;
-
+    
     if (_suspended == NO) {
         if (resource != nil &&
             resource.status == MKStatusDownloaded) {
             if ([self existMRinCache:[resource.resourceURL absoluteString]]) {
                 NSMutableData* data = [self readMediaResourceFromCacheAtPath:[resource.resourceURL absoluteString]];
-                decryptedData = [AESUtil decryptAES:_keyEncoding data:data];
+                //                decryptedData = [AESUtil decryptAES:_keyEncoding data:data];
+                decryptedData = data;
                 resource.lastAccessDate = [NSDate date];
             }
         }
@@ -274,13 +275,13 @@ NSUInteger const MKMediaResourceMaxConcurrentDownloadsCount = 10;
             *error = [NSError errorWithDomain:@"MKResourceManagerErrorDomain" code:60 userInfo:userInfo];
         }
     }
-
+    
     return decryptedData;
 }
 
 - (void)setData:(NSData*)data forResource:(MKResource*)resource {
     if (resource != nil) {
-
+        
         resource.lastAccessDate = [NSDate date];
         if (data == nil && [self existMRinCache:[resource.resourceURL absoluteString]] == NO) {
             [resource setStatus:MKStatusNotDownloaded];
@@ -296,8 +297,9 @@ NSUInteger const MKMediaResourceMaxConcurrentDownloadsCount = 10;
 
 - (void)saveInCache:(NSData*)data atPath:(NSString*)stringURL {
     NSString* fullURLString = [self fullFilePath:stringURL];
-    [[AESUtil encryptAES:_keyEncoding data:data] writeToFile:fullURLString atomically:YES];
-      // also add attributes
+    //    [[AESUtil encryptAES:_keyEncoding data:data] writeToFile:fullURLString atomically:YES];
+    [data writeToFile:fullURLString atomically:YES];
+    // also add attributes
     NSURL* fileURL = [NSURL fileURLWithPath:fullURLString];
     [MKResourceUtility markNonPurgeableNonBackedUpFileAtURL:fileURL];
 }
@@ -356,9 +358,9 @@ NSUInteger const MKMediaResourceMaxConcurrentDownloadsCount = 10;
     if (aURL == nil) {
         return nil;
     }
-
+    
     MKResource* resource = [_statusByURL objectForKey:[aURL absoluteString]];
-
+    
     //need to find resources with old naming scheme
     if (resource == nil) {
         resource = [self tryToFindAndMigrateResourceInCacheWithOldNamingSchemeForNSURL:aURL];
@@ -382,23 +384,23 @@ NSUInteger const MKMediaResourceMaxConcurrentDownloadsCount = 10;
     }
     
     resource.lastAccessDate = [NSDate date];
-
+    
     return resource;
 }
 
 - (MKResource*)downloadResourceForNSURL:(NSURL*)aURL {
     MKResource* resource = [self resourceForNSURL:aURL];
-
+    
     [self startDownloadResource:resource];
-
+    
     return resource;
 }
 
 - (MKResource*)cancelDownloadResourceForNSURL:(NSURL*)aURL {
     MKResource* resource = [self resourceForNSURL:aURL];
-
+    
     [self cancelDownloadResource:resource];
-
+    
     return resource;
 }
 
@@ -412,6 +414,10 @@ NSUInteger const MKMediaResourceMaxConcurrentDownloadsCount = 10;
     return data;
 }
 
+- (NSURL*)pathForResource:(MKResource*)resource {
+    return [NSURL fileURLWithPath:[self fullFilePath:[resource.resourceURL absoluteString]]];
+}
+
 - (void)setData:(NSData*)data forResourceForNSURL:(NSURL*)aURL {
     MKResource* resource = [self resourceForNSURL:aURL];
     [self setData:data forResource:resource];
@@ -420,11 +426,11 @@ NSUInteger const MKMediaResourceMaxConcurrentDownloadsCount = 10;
 - (BOOL)removeResourceForNSURL:(NSURL*)aURL {
     BOOL result = YES;
     MKResource* resource = [self resourceForNSURL:aURL];
-
+    
     if (resource.status == MKStatusDownloaded) {
         result = [self removeResourceFromStorage:resource];
     }
-
+    
     return result;
 }
 
@@ -433,7 +439,7 @@ NSUInteger const MKMediaResourceMaxConcurrentDownloadsCount = 10;
     NSError* error = nil;
     NSString* pathToResource = [self fullFilePath:[aResource.resourceURL absoluteString]];
     [[NSFileManager defaultManager] removeItemAtPath:pathToResource error:&error];
-
+    
     if (error != nil) {
         result = NO;
         NSLog(@"%@: Fail to remove file at path: %@, %@", NSStringFromClass ([self class]), pathToResource, [error localizedDescription]);//Error
