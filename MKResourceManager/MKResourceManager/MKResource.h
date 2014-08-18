@@ -107,6 +107,13 @@ typedef enum {
 - (void)resourceStatusDidChange:(MKResource*)resource;
 
 @optional
+
+/** Notifies watcher about resource will start download.
+ *  @param resource The resource for whitch download will start.
+ *  @param request NSMutableURLRequest.
+ */
+- (void)resource:(MKResource*)resource willSendRequest:(NSMutableURLRequest*)request;
+
 /** Notifies watcher about resource download progress change.
  *  @param resource The resource for whitch download progress changed.
  *  @param progress Number with float value between 0.0 and 1.0, inclusive, where 1.0 indicates the completion of the task.

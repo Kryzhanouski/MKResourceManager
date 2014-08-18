@@ -20,6 +20,7 @@
 - (void)setDownloadedLength:(NSUInteger)downloadedLength;
 - (void)notifyDidCancelDownload;
 - (void)notifyDidFinishDownload:(NSError*)error;
+- (void)notifyWillStartDownload:(NSMutableURLRequest*)request;
 - (void)didFinishDownloadMR:(NSData*)data error:(NSError*)error;
 - (void)didFinishDownloadMR:(NSData*)data error:(NSError*)error httpResponse:(NSHTTPURLResponse *)httpResponse;
 - (void)setStatus:(MKStatus)newStatus;

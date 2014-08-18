@@ -261,6 +261,18 @@
     [_completionHandlers removeAllObjects];
 }
 
+- (void)notifyWillStartDownload:(NSMutableURLRequest*)request {
+    
+    id<MKResourceStatusWatcher> watcher = nil;
+    NSArray* watchers = [_watchers copy];
+    for (NSValue* nonRetainedWacher in watchers) {
+        watcher = (id<MKResourceStatusWatcher>)[nonRetainedWacher pointerValue];
+        if ([watcher respondsToSelector:@selector(resource:willSendRequest:)]) {
+            [watcher resource:self willSendRequest:request];
+        }
+    }
+}
+
 - (void)didFinishDownloadMR:(NSData*)data error:(NSError*)error {
     [self didFinishDownloadMR:data error:error httpResponse:nil];
 }

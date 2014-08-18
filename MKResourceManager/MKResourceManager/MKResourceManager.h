@@ -49,6 +49,12 @@
 
 @property (nonatomic, readonly) NSString* pathCache;
 
+/**
+ * Sets/gets the maximum number of concurrent downloads that the receiver can execute.
+ * Default value is 10
+ */
+@property (nonatomic, assign) NSUInteger maxConcurrentDownloadsCount;
+
 - (id)initWithKey:(NSString*)aKeyEncoding pathCache:(NSString*)path;
 
 /** Returns resource for specified resource URL.

@@ -147,14 +147,26 @@
 
     BOOL didFinish = YES;
     for (MKResource* resource in _resources) {
-        if (resource.status != MKStatusDownloaded) {
+        if (resource.status == MKStatusInProgress) {
             didFinish = NO;
             break;
         }
     }
 
     if (didFinish == YES) {
-        [self notifyDidFinishDownload:nil];
+        BOOL hasError = NO;
+        for (MKResource* res in _resources) {
+            if (res.lastError != nil) {
+                hasError = YES;
+                break;
+            }
+        }
+        NSError* error = nil;
+        if (hasError) {
+            NSDictionary* userInfo = [NSDictionary dictionaryWithObjectsAndKeys:@"An error has occured. Check lastError of controlled resources",NSLocalizedFailureReasonErrorKey, nil];
+            error = [NSError errorWithDomain:@"MKResourcesControllerErrorDomain" code:60 userInfo:userInfo];
+        }
+        [self notifyDidFinishDownload:error];
     }
 }
 
@@ -163,7 +175,7 @@
 
     BOOL didCancel = YES;
     for (MKResource* resource in _resources) {
-        if (resource.status == MKStatusNotDownloaded) {
+        if (resource.status == MKStatusInProgress) {
             didCancel = NO;
             break;
         }

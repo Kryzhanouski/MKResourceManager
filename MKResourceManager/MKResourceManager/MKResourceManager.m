@@ -41,6 +41,7 @@ NSUInteger const MKMediaResourceMaxConcurrentDownloadsCount = 10;
         _downloadResourcesQueue = [[NSMutableArray alloc] init];
 		_suspended = YES;
         _saveResourceInfoQueue = dispatch_queue_create("MKResourceManager save resource info queue", NULL);
+        _maxConcurrentDownloadsCount = MKMediaResourceMaxConcurrentDownloadsCount;
 
         BOOL isDir = YES;
         NSFileManager* fileManager = [NSFileManager defaultManager];
@@ -173,7 +174,7 @@ NSUInteger const MKMediaResourceMaxConcurrentDownloadsCount = 10;
 }
 
 - (void)downloadResourceQueueChanged {
-    if ([[_workDictionary allValues] count] >= MKMediaResourceMaxConcurrentDownloadsCount) {
+    if ([[_workDictionary allValues] count] >= self.maxConcurrentDownloadsCount) {
         return;
     }
     
