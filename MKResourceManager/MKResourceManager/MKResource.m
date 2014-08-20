@@ -278,7 +278,14 @@
 }
 
 - (void)didFinishDownloadMR:(NSData*)data error:(NSError*)error httpResponse:(NSHTTPURLResponse *)httpResponse {
-	[_manager didFinishDownloadResource:self data:data error:error httpResponse:(NSHTTPURLResponse *)httpResponse];
+    NSURL* tempFileUrl = nil;
+    if (data) {
+        NSString* tempFile = [NSTemporaryDirectory() stringByAppendingPathComponent:[NSString stringWithFormat:@"%f",[NSDate timeIntervalSinceReferenceDate]]];
+        tempFileUrl = [NSURL fileURLWithPath:tempFile];
+        [data writeToURL:tempFileUrl atomically:YES];
+    }
+
+	[_manager didFinishDownloadResource:self dataFileURL:tempFileUrl error:error httpResponse:httpResponse];
 }
 
 @end

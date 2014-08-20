@@ -8,13 +8,11 @@
 
 /* Begin PBXBuildFile section */
 		47482A9317D89A9700144780 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 47482A9217D89A9700144780 /* Foundation.framework */; };
-		47482AA217D89A9700144780 /* SenTestingKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 47482AA117D89A9700144780 /* SenTestingKit.framework */; };
 		47482AA417D89A9700144780 /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 47482AA317D89A9700144780 /* UIKit.framework */; };
 		47482AA517D89A9700144780 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 47482A9217D89A9700144780 /* Foundation.framework */; };
 		47482AA817D89A9700144780 /* libMKResourceManager.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 47482A8F17D89A9700144780 /* libMKResourceManager.a */; };
 		47482AAE17D89A9700144780 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 47482AAC17D89A9700144780 /* InfoPlist.strings */; };
 		47482AC617D89B4B00144780 /* MKCustomResource.m in Sources */ = {isa = PBXBuildFile; fileRef = 47482ABB17D89B4B00144780 /* MKCustomResource.m */; };
-		47482AC717D89B4B00144780 /* MKResourceDownloadWork.m in Sources */ = {isa = PBXBuildFile; fileRef = 47482ABD17D89B4B00144780 /* MKResourceDownloadWork.m */; };
 		47482AC817D89B4B00144780 /* MKResourceManager.m in Sources */ = {isa = PBXBuildFile; fileRef = 47482ABF17D89B4B00144780 /* MKResourceManager.m */; };
 		47482AC917D89B4B00144780 /* MKResource.m in Sources */ = {isa = PBXBuildFile; fileRef = 47482AC217D89B4B00144780 /* MKResource.m */; };
 		47482ACA17D89B4B00144780 /* MKResourcesController.m in Sources */ = {isa = PBXBuildFile; fileRef = 47482AC517D89B4B00144780 /* MKResourcesController.m */; };
@@ -51,15 +49,12 @@
 		47482A8F17D89A9700144780 /* libMKResourceManager.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libMKResourceManager.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		47482A9217D89A9700144780 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
 		47482A9617D89A9700144780 /* MKResourceManager-Prefix.pch */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "MKResourceManager-Prefix.pch"; sourceTree = "<group>"; };
-		47482AA017D89A9700144780 /* MKResourceManagerTests.octest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MKResourceManagerTests.octest; sourceTree = BUILT_PRODUCTS_DIR; };
-		47482AA117D89A9700144780 /* SenTestingKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SenTestingKit.framework; path = Library/Frameworks/SenTestingKit.framework; sourceTree = DEVELOPER_DIR; };
+		47482AA017D89A9700144780 /* MKResourceManagerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MKResourceManagerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		47482AA317D89A9700144780 /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = Library/Frameworks/UIKit.framework; sourceTree = DEVELOPER_DIR; };
 		47482AAB17D89A9700144780 /* MKResourceManagerTests-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "MKResourceManagerTests-Info.plist"; sourceTree = "<group>"; };
 		47482AAD17D89A9700144780 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 		47482ABA17D89B4B00144780 /* MKCustomResource.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MKCustomResource.h; sourceTree = "<group>"; };
 		47482ABB17D89B4B00144780 /* MKCustomResource.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = MKCustomResource.m; sourceTree = "<group>"; };
-		47482ABC17D89B4B00144780 /* MKResourceDownloadWork.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MKResourceDownloadWork.h; sourceTree = "<group>"; };
-		47482ABD17D89B4B00144780 /* MKResourceDownloadWork.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = MKResourceDownloadWork.m; sourceTree = "<group>"; };
 		47482ABE17D89B4B00144780 /* MKResourceManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MKResourceManager.h; sourceTree = "<group>"; };
 		47482ABF17D89B4B00144780 /* MKResourceManager.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = MKResourceManager.m; sourceTree = "<group>"; };
 		47482AC017D89B4B00144780 /* MKResourceManager+Private.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "MKResourceManager+Private.h"; sourceTree = "<group>"; };
@@ -94,7 +89,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				47482AA217D89A9700144780 /* SenTestingKit.framework in Frameworks */,
 				47482AA417D89A9700144780 /* UIKit.framework in Frameworks */,
 				47482AA517D89A9700144780 /* Foundation.framework in Frameworks */,
 				47482AA817D89A9700144780 /* libMKResourceManager.a in Frameworks */,
@@ -118,7 +112,7 @@
 			isa = PBXGroup;
 			children = (
 				47482A8F17D89A9700144780 /* libMKResourceManager.a */,
-				47482AA017D89A9700144780 /* MKResourceManagerTests.octest */,
+				47482AA017D89A9700144780 /* MKResourceManagerTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -127,7 +121,6 @@
 			isa = PBXGroup;
 			children = (
 				47482A9217D89A9700144780 /* Foundation.framework */,
-				47482AA117D89A9700144780 /* SenTestingKit.framework */,
 				47482AA317D89A9700144780 /* UIKit.framework */,
 			);
 			name = Frameworks;
@@ -138,8 +131,6 @@
 			children = (
 				47482ABA17D89B4B00144780 /* MKCustomResource.h */,
 				47482ABB17D89B4B00144780 /* MKCustomResource.m */,
-				47482ABC17D89B4B00144780 /* MKResourceDownloadWork.h */,
-				47482ABD17D89B4B00144780 /* MKResourceDownloadWork.m */,
 				47482ABE17D89B4B00144780 /* MKResourceManager.h */,
 				47482ABF17D89B4B00144780 /* MKResourceManager.m */,
 				47482AC017D89B4B00144780 /* MKResourceManager+Private.h */,
@@ -225,8 +216,8 @@
 			);
 			name = MKResourceManagerTests;
 			productName = MKResourceManagerTests;
-			productReference = 47482AA017D89A9700144780 /* MKResourceManagerTests.octest */;
-			productType = "com.apple.product-type.bundle";
+			productReference = 47482AA017D89A9700144780 /* MKResourceManagerTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
 		};
 /* End PBXNativeTarget section */
 
@@ -234,6 +225,7 @@
 		47482A8717D89A9700144780 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
+				LastTestingUpgradeCheck = 0510;
 				LastUpgradeCheck = 0460;
 				ORGANIZATIONNAME = "Mark Kryzhanouski";
 			};
@@ -288,7 +280,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				47482AC617D89B4B00144780 /* MKCustomResource.m in Sources */,
-				47482AC717D89B4B00144780 /* MKResourceDownloadWork.m in Sources */,
 				47482AC817D89B4B00144780 /* MKResourceManager.m in Sources */,
 				47482AC917D89B4B00144780 /* MKResource.m in Sources */,
 				47482ACA17D89B4B00144780 /* MKResourcesController.m in Sources */,
@@ -353,7 +344,7 @@
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
 				GCC_WARN_UNINITIALIZED_AUTOS = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 6.1;
+				IPHONEOS_DEPLOYMENT_TARGET = 7.0;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
 			};
@@ -376,7 +367,7 @@
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
 				GCC_WARN_UNINITIALIZED_AUTOS = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 6.1;
+				IPHONEOS_DEPLOYMENT_TARGET = 7.0;
 				SDKROOT = iphoneos;
 				VALIDATE_PRODUCT = YES;
 			};
@@ -412,12 +403,12 @@
 				FRAMEWORK_SEARCH_PATHS = (
 					"\"$(SDKROOT)/Developer/Library/Frameworks\"",
 					"\"$(DEVELOPER_LIBRARY_DIR)/Frameworks\"",
+					"$(inherited)",
 				);
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = "MKResourceManager/MKResourceManager-Prefix.pch";
 				INFOPLIST_FILE = "MKResourceManagerTests/MKResourceManagerTests-Info.plist";
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				WRAPPER_EXTENSION = octest;
 			};
 			name = Debug;
 		};
@@ -427,12 +418,12 @@
 				FRAMEWORK_SEARCH_PATHS = (
 					"\"$(SDKROOT)/Developer/Library/Frameworks\"",
 					"\"$(DEVELOPER_LIBRARY_DIR)/Frameworks\"",
+					"$(inherited)",
 				);
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = "MKResourceManager/MKResourceManager-Prefix.pch";
 				INFOPLIST_FILE = "MKResourceManagerTests/MKResourceManagerTests-Info.plist";
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				WRAPPER_EXTENSION = octest;
 			};
 			name = Release;
 		};
@@ -455,6 +446,7 @@
 				47482AB617D89A9700144780 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 		47482AB717D89A9700144780 /* Build configuration list for PBXNativeTarget "MKResourceManagerTests" */ = {
 			isa = XCConfigurationList;
@@ -463,6 +455,7 @@
 				47482AB917D89A9700144780 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};

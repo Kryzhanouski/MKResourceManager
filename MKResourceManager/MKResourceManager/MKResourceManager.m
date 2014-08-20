@@ -8,20 +8,22 @@
 
 #import "MKResourceManager.h"
 #import "MKResourceManager+Private.h"
-#import "MKResourceDownloadWork.h"
 #import "AESUtil.h"
 #import "MKResource+Private.h"
 #import "MKResourceUtility.h"
 #import "MKResourceUtility+Private.h"
 #import "MKCustomResource.h"
 
-static NSString* const MKMediaResourceSavedResourcesFileName = @"ResourceInfo.plist";
-NSUInteger const MKMediaResourceMaxConcurrentDownloadsCount = 10;
+NSString* const MKMediaResourceSavedResourcesFileName           = @"ResourceInfo.plist";
+NSUInteger const MKMediaResourceMaxConcurrentDownloadsCount     = 10;
 
 
-@interface MKResourceManager () {
+@interface MKResourceManager () <NSURLSessionDelegate> {
     id<MKHTTPHandlerClientPrivate> _httpClient;
 }
+@property (nonatomic, strong) NSURLSession* URLSession;
+@property (nonatomic, strong) CompletionHandlerType backgroundSessionCompletionHandler;
+@property (nonatomic, strong) NSString* backgroundSessionIdentifier;
 @end
 
 
@@ -30,6 +32,11 @@ NSUInteger const MKMediaResourceMaxConcurrentDownloadsCount = 10;
 @synthesize pathCache = _pathCache;
 
 - (id)initWithKey:(NSString*)aKeyEncoding pathCache:(NSString*)path {
+    return [self initWithKey:aKeyEncoding pathCache:path supportBackgroundLoading:YES];
+}
+
+- (id)initWithKey:(NSString*)aKeyEncoding pathCache:(NSString*)path supportBackgroundLoading:(BOOL)support
+{
     self = [super init];
     if (self != nil) {
         _workDictionary = [[NSMutableDictionary alloc] init];
@@ -42,13 +49,23 @@ NSUInteger const MKMediaResourceMaxConcurrentDownloadsCount = 10;
 		_suspended = YES;
         _saveResourceInfoQueue = dispatch_queue_create("MKResourceManager save resource info queue", NULL);
         _maxConcurrentDownloadsCount = MKMediaResourceMaxConcurrentDownloadsCount;
-
+        
+        NSURLSessionConfiguration *configObject = nil;
+        if (support) {
+            self.backgroundSessionIdentifier = [NSString stringWithFormat:@"%f",[NSDate timeIntervalSinceReferenceDate]];
+            configObject = [NSURLSessionConfiguration backgroundSessionConfiguration:self.backgroundSessionIdentifier];
+        }
+        else {
+            configObject = [NSURLSessionConfiguration defaultSessionConfiguration];
+        }
+        self.URLSession = [NSURLSession sessionWithConfiguration:configObject delegate:self delegateQueue:[NSOperationQueue mainQueue]];
+        
         BOOL isDir = YES;
         NSFileManager* fileManager = [NSFileManager defaultManager];
         if (![fileManager fileExistsAtPath:_pathCache isDirectory:&isDir]) {
             [fileManager createDirectoryAtPath:_pathCache withIntermediateDirectories:YES attributes:nil error:nil];
         }
-
+        
         [self restoreResources];
     }
     return self;
@@ -59,7 +76,6 @@ NSUInteger const MKMediaResourceMaxConcurrentDownloadsCount = 10;
     for (MKResource* resource in [_statusByURL allValues]) {
         [resource setResourceManager:nil];
     }
-//    dispatch_release(_saveResourceInfoQueue);
 }
 
 - (void)setHttpClient:(id<MKHTTPHandlerClientPrivate>)client {
@@ -73,13 +89,18 @@ NSUInteger const MKMediaResourceMaxConcurrentDownloadsCount = 10;
 
 - (void)suspend {
     _suspended = YES;
-    for (MKResourceDownloadWork* work in [_workDictionary allValues]) {
-        [self cancelDownloadResource:[work resource]];
+    for (NSURLSessionDownloadTask* downloadTask in [_workDictionary allValues]) {
+        [downloadTask suspend];
+//        MKResource* resource = [self resourceForNSURL:downloadTask.originalRequest.URL];
+//        [self cancelDownloadResource:resource];
     }
 }
 
 - (void)resume {
     _suspended = NO;
+    for (NSURLSessionDownloadTask* downloadTask in [_workDictionary allValues]) {
+        [downloadTask resume];
+    }
     for (MKResource* resource in _suspendedResources) {
         [self startDownloadResource:resource];
     }
@@ -191,9 +212,20 @@ NSUInteger const MKMediaResourceMaxConcurrentDownloadsCount = 10;
     if ([resource isKindOfClass:[MKCustomResource class]]) {
         [(MKCustomResource*)resource startCustomDownload];
     } else {
-        MKResourceDownloadWork* work = [[MKResourceDownloadWork alloc] init];
-        [_workDictionary setObject:work forKey:[resource.resourceURL absoluteString]];
-        [work startDownloadWork:resource manager:self httpClient:_httpClient];
+        NSMutableURLRequest *dataRequest = [NSMutableURLRequest requestWithURL:resource.resourceURL cachePolicy:NSURLRequestReturnCacheDataElseLoad timeoutInterval:60];
+
+        NSURLSessionDownloadTask* downloadTask = [self.URLSession downloadTaskWithRequest:dataRequest];
+        
+        if (downloadTask == nil) {
+            [resource didFinishDownloadMR:nil error:nil httpResponse:nil];
+        } else {
+            NSLog(@"Start loading url:%@", resource.resourceURL);//Info
+        }
+        
+        [_workDictionary setObject:downloadTask forKey:[resource.resourceURL absoluteString]];
+ 
+        [downloadTask resume];
+        
         //        [[MKNetworkActivity sharedInstance] incrementLoadingItems];
     }
 }
@@ -218,8 +250,8 @@ NSUInteger const MKMediaResourceMaxConcurrentDownloadsCount = 10;
             [(MKCustomResource*) resource cancelCustomDownload];
         } else {
             //            [[MKNetworkActivity sharedInstance] decrementLoadingItems];
-            MKResourceDownloadWork* work = (MKResourceDownloadWork*)[_workDictionary objectForKey:[resource.resourceURL absoluteString]];
-            [work cancelLoading];
+            NSURLSessionDownloadTask* downloadTask = [_workDictionary objectForKey:[resource.resourceURL absoluteString]];
+            [downloadTask cancel];
             [_workDictionary removeObjectForKey:[resource.resourceURL absoluteString]];
         }
         
@@ -233,11 +265,11 @@ NSUInteger const MKMediaResourceMaxConcurrentDownloadsCount = 10;
     }
 }
 
-- (void)didFinishDownloadResource:(MKResource *)resource data:(NSData *)data error:(NSError *)error {
-    [self didFinishDownloadResource:resource data:data error:error httpResponse:nil];
-}
-
-- (void)didFinishDownloadResource:(MKResource *)resource data:(NSData *)data error:(NSError *)error httpResponse:(NSHTTPURLResponse*)httpResponse {
+//- (void)didFinishDownloadResource:(MKResource *)resource data:(NSData *)data error:(NSError *)error {
+//    [self didFinishDownloadResource:resource data:data error:error httpResponse:nil];
+//}
+//
+- (void)didFinishDownloadResource:(MKResource *)resource dataFileURL:(NSURL*)dataFileURL error:(NSError *)error httpResponse:(NSHTTPURLResponse*)httpResponse {
     [_workDictionary removeObjectForKey:[resource.resourceURL absoluteString]];
     if ([resource isKindOfClass:[MKCustomResource class]] == NO) {
         //        [[MKNetworkActivity sharedInstance] decrementLoadingItems];
@@ -251,7 +283,7 @@ NSUInteger const MKMediaResourceMaxConcurrentDownloadsCount = 10;
         }
         [resource setLastError:error];
         [resource setLastResponse:httpResponse];
-        [self setData:data forResource:resource];
+        [self setDataFromFileAtURL:dataFileURL forResource:resource];
         [resource notifyDidFinishDownload:error];
         [self dequeueResource:resource];
     }
@@ -281,14 +313,24 @@ NSUInteger const MKMediaResourceMaxConcurrentDownloadsCount = 10;
 }
 
 - (void)setData:(NSData*)data forResource:(MKResource*)resource {
+    NSURL* tempFileUrl = nil;
+    if (data) {
+        NSString* tempFile = [NSTemporaryDirectory() stringByAppendingPathComponent:[NSString stringWithFormat:@"%f",[NSDate timeIntervalSinceReferenceDate]]];
+        tempFileUrl = [NSURL fileURLWithPath:tempFile];
+        [data writeToURL:tempFileUrl atomically:YES];
+    }
+    [self setDataFromFileAtURL:tempFileUrl forResource:resource];
+}
+
+- (void)setDataFromFileAtURL:(NSURL*)dataFileURL forResource:(MKResource*)resource {
     if (resource != nil) {
         
         resource.lastAccessDate = [NSDate date];
-        if (data == nil && [self existMRinCache:[resource.resourceURL absoluteString]] == NO) {
+        if (dataFileURL == nil && [self existMRinCache:[resource.resourceURL absoluteString]] == NO) {
             [resource setStatus:MKStatusNotDownloaded];
         } else {
-            if (data) {
-                [self saveInCache:data atPath:[resource.resourceURL absoluteString]];
+            if (dataFileURL) {
+                [self saveInCacheDataFromFileAtURL:dataFileURL atPath:[resource.resourceURL absoluteString]];
             }
             [resource setStatus:MKStatusDownloaded];
             [self saveResourcesInfo];
@@ -296,12 +338,19 @@ NSUInteger const MKMediaResourceMaxConcurrentDownloadsCount = 10;
     }
 }
 
-- (void)saveInCache:(NSData*)data atPath:(NSString*)stringURL {
+- (void)saveInCacheDataFromFileAtURL:(NSURL*)dataFileURL atPath:(NSString*)stringURL {
     NSString* fullURLString = [self fullFilePath:stringURL];
-    //    [[AESUtil encryptAES:_keyEncoding data:data] writeToFile:fullURLString atomically:YES];
-    [data writeToFile:fullURLString atomically:YES];
-    // also add attributes
     NSURL* fileURL = [NSURL fileURLWithPath:fullURLString];
+    //    [[AESUtil encryptAES:_keyEncoding data:data] writeToFile:fullURLString atomically:YES];
+    
+    NSError *err = nil;
+    NSFileManager *fileManager = [NSFileManager defaultManager];
+    if ([fileManager moveItemAtURL:dataFileURL toURL:fileURL error: &err]) {
+        /* Store some reference to the new URL */
+    } else {
+        /* Handle the error. */
+    }
+    // also add attributes
     [MKResourceUtility markNonPurgeableNonBackedUpFileAtURL:fileURL];
 }
 
@@ -461,6 +510,144 @@ NSUInteger const MKMediaResourceMaxConcurrentDownloadsCount = 10;
     if (![_customSchemesHandlers containsObject:aClass]) {
         [_customSchemesHandlers addObject:aClass];
     }
+}
+
+#pragma mark - Implement NSURLSessionDelegate
+- (void)URLSessionDidFinishEventsForBackgroundURLSession:(NSURLSession *)session
+{
+    NSLog(@"Background URL session %@ finished events.\n", session);
+    
+    if (session.configuration.identifier)
+        [self callCompletionHandlerForSession:session.configuration.identifier];
+}
+
+- (void)addCompletionHandler:(CompletionHandlerType)handler forSession:(NSString *)identifier
+{
+    if (self.backgroundSessionCompletionHandler != NULL) {
+        NSLog(@"Error: Got multiple handlers for a single session identifier.  This should not happen.\n");
+    }
+    
+    self.backgroundSessionCompletionHandler = handler;
+}
+
+- (void)callCompletionHandlerForSession:(NSString *)identifier
+{
+    if (self.backgroundSessionCompletionHandler != NULL) {
+        self.backgroundSessionCompletionHandler();
+    }
+}
+
+- (void)URLSession:(NSURLSession *)session downloadTask:(NSURLSessionDownloadTask *)downloadTask didFinishDownloadingToURL:(NSURL *)location
+{
+    if (downloadTask.state == NSURLSessionTaskStateSuspended) {
+        return;
+    }
+    
+    MKResource* resource = [self resourceForNSURL:downloadTask.originalRequest.URL];
+
+    NSHTTPURLResponse* httpResponse = (NSHTTPURLResponse*)downloadTask.response;
+    
+    NSInteger statusCode = [httpResponse statusCode];
+
+    if ((statusCode / 100) == 2) {
+        // status 200, OK
+        [self didFinishDownloadResource:resource dataFileURL:location error:downloadTask.error httpResponse:httpResponse];
+        NSLog(@"Finish download data, url=%@", resource.resourceURL);
+    } else {
+        // !OK
+        NSError *mediaError = [self formattedErrorForHTTPError:downloadTask.error httpResponse:httpResponse dataFileUrl:location];
+        NSLog(@"Error download data, url=%@: %@", resource.resourceURL, mediaError);//Error
+        [self didFinishDownloadResource:resource dataFileURL:nil error:mediaError httpResponse:httpResponse];
+        //        if (self.httpClient) {
+        //			[self.httpClient request:self.urlRequest didFailWithError:mediaError responce:self.urlResponse];
+        //        }
+    }
+}
+
+- (void)URLSession:(NSURLSession *)session downloadTask:(NSURLSessionDownloadTask *)downloadTask didWriteData:(int64_t)bytesWritten totalBytesWritten:(int64_t)totalBytesWritten totalBytesExpectedToWrite:(int64_t)totalBytesExpectedToWrite
+{
+    NSHTTPURLResponse* httpResponse = (NSHTTPURLResponse*)downloadTask.response;
+    
+    NSInteger statusCode = [httpResponse statusCode];
+    NSDictionary* dict = [httpResponse allHeaderFields];
+//    NSLog(@"response headers = %@ with status code: %ld", dict, (long)statusCode);//Info
+    
+    NSString* contentType = [dict objectForKey:@"Content-Type"];
+    if (contentType == nil || [contentType isEqualToString:@""]) {
+        contentType = httpResponse.MIMEType;
+    }
+    
+    MKResource* resource = [self resourceForNSURL:downloadTask.originalRequest.URL];
+    
+    [resource setContentType:contentType];
+    
+    [resource setExpectedContentLength:totalBytesExpectedToWrite];
+    
+    long code = statusCode / 100;
+    if (code == 2) {
+        [resource setDownloadedLength:totalBytesWritten];
+    }
+
+}
+
+- (void)URLSession:(NSURLSession *)session task:(NSURLSessionTask *)task didCompleteWithError:(NSError *)error
+{
+    if (error) {
+        MKResource* resource = [self resourceForNSURL:task.originalRequest.URL];
+        NSLog(@"Error download data, url=%@: %@", resource.resourceURL, [error localizedDescription]);//Error
+        NSError *mediaError = [self formattedErrorForHTTPError:error httpResponse:(NSHTTPURLResponse*)task.response dataFileUrl:nil];
+        [self didFinishDownloadResource:resource dataFileURL:nil error:mediaError httpResponse:(NSHTTPURLResponse*)task.response];
+        //    if (self.httpClient) {
+        //        [self.httpClient request:self.urlRequest didFailWithError:mediaError responce:self.urlResponse];
+        //    }
+    }
+}
+
+- (void)URLSession:(NSURLSession *)session didReceiveChallenge:(NSURLAuthenticationChallenge *)challenge
+ completionHandler:(void (^)(NSURLSessionAuthChallengeDisposition disposition, NSURLCredential *credential))completionHandler
+{
+    NSLog(@"authentication required %@ ",[challenge failureResponse]);//Info
+    NSHTTPURLResponse * httpResponse = (NSHTTPURLResponse *) [challenge failureResponse];
+    [[challenge sender] cancelAuthenticationChallenge:challenge];
+	NSURL *remoteURL = [httpResponse URL];
+#pragma unused(remoteURL)
+    //    PostAuthenticationFaultForURLwithCredential(remoteURL, nil);
+}
+
+- (NSError*)formattedErrorForHTTPError:(NSError*)httpError httpResponse:(NSHTTPURLResponse*)response dataFileUrl:(NSURL*)dataFileUrl {
+    NSUInteger httpStatusCode = [response statusCode];
+    NSDictionary* httpResponseHeaders = [response allHeaderFields];
+	
+	if ((httpStatusCode / 100) != 2) {
+		NSDictionary* theUserInfo = [httpError userInfo];
+        
+		if (httpResponseHeaders) {
+			NSMutableDictionary* theMutableUserInfo = nil;
+			if (theUserInfo != nil) {
+				theMutableUserInfo = [NSMutableDictionary dictionaryWithDictionary:theUserInfo];
+            } else {
+				theMutableUserInfo = [NSMutableDictionary dictionary];
+			}
+			
+			[theMutableUserInfo setObject:[NSDictionary dictionaryWithDictionary:httpResponseHeaders] forKey:@"MKHTTPResponceHeadersErrorKey"];
+            
+            NSData* httpResponseData = [[NSData alloc] initWithContentsOfURL:dataFileUrl];
+            if (httpResponseData != nil) {
+                NSString* dataStr = [[NSString alloc] initWithData:httpResponseData encoding:NSUTF8StringEncoding];
+                [theMutableUserInfo setObject:dataStr forKey:NSLocalizedFailureReasonErrorKey];
+            }
+            
+			theUserInfo = theMutableUserInfo;
+		}
+		
+		if (httpStatusCode == 401) {
+			httpError = [NSError errorWithDomain:@"MKAuthenticationErrorDomain" code:httpStatusCode userInfo:theUserInfo];
+		} else {
+			httpError = [NSError errorWithDomain:NSURLErrorDomain code:httpStatusCode userInfo:theUserInfo];
+		}
+	}
+	
+	return httpError;
 }
 
 @end

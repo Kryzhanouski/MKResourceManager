@@ -9,6 +9,7 @@
 #import <Foundation/Foundation.h>
 #import "MKResource.h"
 
+#define MKRESOURCEMANAGER_EXTERN		extern
 
 /**
  \defgroup MediaResourcesDoxyGroup Fetching Media Resources
@@ -48,6 +49,8 @@
 }
 
 @property (nonatomic, readonly) NSString* pathCache;
+@property (nonatomic, readonly, strong) NSString* backgroundSessionIdentifier;
+;
 
 /**
  * Sets/gets the maximum number of concurrent downloads that the receiver can execute.
@@ -118,3 +121,6 @@
 - (void)resume;
 
 @end
+
+
+typedef void (^CompletionHandlerType)();

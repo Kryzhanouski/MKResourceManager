@@ -12,13 +12,13 @@
 
 #define USE_APPLICATION_UNIT_TEST 0
 
-#import <SenTestingKit/SenTestingKit.h>
+#import <XCTest/XCTest.h>
 #import <UIKit/UIKit.h>
 #import "MKResourceManager.h"
 
 // #import "application_headers" as required
 
-@interface MKResourceManagerTest : SenTestCase <MKResourceStatusWatcher> {
+@interface MKResourceManagerTest : XCTestCase <MKResourceStatusWatcher> {
     BOOL        _finish;
     NSUInteger  _imagesCount;
     NSUInteger  _downloadedImagesCount;

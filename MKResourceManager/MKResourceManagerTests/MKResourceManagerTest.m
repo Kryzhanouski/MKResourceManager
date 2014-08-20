@@ -26,7 +26,7 @@
     NSString* dirPath = NSTemporaryDirectory();
     dirPath = [dirPath stringByAppendingPathComponent:@"TestDir"];
 
-    MKResourceManager* testedManager = [[MKResourceManager alloc] initWithKey:@"abcdefjxyz" pathCache:dirPath];
+    MKResourceManager* testedManager = [[MKResourceManager alloc] initWithKey:@"abcdefjxyz" pathCache:dirPath supportBackgroundLoading:NO];
     [testedManager resume];
 
       // should not crash on trying to download a nil
@@ -36,80 +36,86 @@
     [testedManager registerCustomResourceClass:[MKTestResource class]];
     NSURL* testURL = [NSURL URLWithString:@"MKTestResource"];
     MKResource* customResource = [testedManager resourceForNSURL:testURL];
-    STAssertTrue([customResource isKindOfClass:[MKTestResource class]], @"MKTestResource should be here");
+    XCTAssertTrue([customResource isKindOfClass:[MKTestResource class]], @"MKTestResource should be here");
 
     [customResource startDownload];
-    STAssertEquals(MKStatusInProgress, customResource.status, @"customResource should be in progress");
+    XCTAssertEqual(MKStatusInProgress, customResource.status, @"customResource should be in progress");
     [customResource cancelDownload];
-    STAssertEquals(MKStatusNotDownloaded, customResource.status, @"customResource should be NotDownloaded");
+    XCTAssertEqual(MKStatusNotDownloaded, customResource.status, @"customResource should be NotDownloaded");
 
     NSString* fakeRunString = @"MKTestResourceFakeRun";
     NSURL* fakeRunURL = [NSURL URLWithString:fakeRunString];
     MKResource* anotherResource = [testedManager resourceForNSURL:fakeRunURL];
-    STAssertTrue([anotherResource isKindOfClass:[MKTestResource class]], @"MKTestResource should be here");
+    XCTAssertTrue([anotherResource isKindOfClass:[MKTestResource class]], @"MKTestResource should be here");
 
     [anotherResource startDownload];
-    STAssertEquals(MKStatusDownloaded, anotherResource.status, @"anotherResource should have faked Downloaded status");
+    XCTAssertEqual(MKStatusDownloaded, anotherResource.status, @"anotherResource should have faked Downloaded status");
     NSError* error = nil;
     NSData *resData = [testedManager dataForResource:anotherResource error:&error];
     NSString* resString = [[NSString alloc] initWithData:resData encoding:NSUTF8StringEncoding];
-    STAssertEqualObjects(resString, fakeRunString, @"anotherResource should have returned '%@'", fakeRunString);
-    STAssertNil(error, @"");
+    XCTAssertEqualObjects(resString, fakeRunString, @"anotherResource should have returned '%@'", fakeRunString);
+    XCTAssertNil(error, @"");
 
       // proceed to generic tests
     NSString* resourcePath = @"фыввлаэжжывдлаэждл±!@#$%^&*()_+";
     NSString* encPath = [MKResourceUtility URLEncode:resourcePath];
     NSURL* pathURL = [NSURL URLWithString:encPath];
     MKResource* resource = [testedManager resourceForNSURL:pathURL];
-    STAssertFalse([resource isKindOfClass:[MKTestResource class]], @"This should be a generic MKResource");
+    XCTAssertFalse([resource isKindOfClass:[MKTestResource class]], @"This should be a generic MKResource");
 
-    STAssertNotNil(resource, @"Resource cannot be nil for path %@",resourcePath);
+    XCTAssertNotNil(resource, @"Resource cannot be nil for path %@",resourcePath);
 
-    STAssertTrue(resource.status == MKStatusNotDownloaded, @"Resource status should be MKStatusNotDownloaded");
+    XCTAssertTrue(resource.status == MKStatusNotDownloaded, @"Resource status should be MKStatusNotDownloaded");
 
-    STAssertNil([resource data], @"Resource data should be nil");
+    XCTAssertNil([resource data], @"Resource data should be nil");
 
     NSString* dataString = @"Some Data: фыввлаэжжывдлаэждл±!@#$%^&*()_+";
     NSData* data = [dataString dataUsingEncoding:NSUTF8StringEncoding];
+    NSString* tempFile = [NSTemporaryDirectory() stringByAppendingPathComponent:[NSString stringWithFormat:@"%f",[NSDate timeIntervalSinceReferenceDate]]];
+    NSURL* tempFileUrl = [NSURL fileURLWithPath:tempFile];
+    [data writeToURL:tempFileUrl atomically:YES];
 
-	[testedManager didFinishDownloadResource:resource data:data error:nil httpResponse:nil];
+    [testedManager didFinishDownloadResource:resource dataFileURL:tempFileUrl error:nil httpResponse:nil];
 
-    STAssertTrue(resource.status == MKStatusDownloaded, @"Resource status should be MKStatusDownloaded");
+    XCTAssertTrue(resource.status == MKStatusDownloaded, @"Resource status should be MKStatusDownloaded");
 
     NSData* resourceData = [resource data];
-    STAssertNotNil(resourceData, @"Resource data should be not nil");
+    XCTAssertNotNil(resourceData, @"Resource data should be not nil");
 
     NSString* resourceString = [[NSString alloc] initWithBytes:[resourceData bytes] length:[resourceData length] encoding:NSUTF8StringEncoding];
 
-    STAssertTrue([dataString isEqualToString:resourceString], @"Data retrieved from manager is corrupted");
+    XCTAssertTrue([dataString isEqualToString:resourceString], @"Data retrieved from manager is corrupted");
 
     BOOL result = [testedManager removeResourceForNSURL:pathURL];
 
-    STAssertTrue(result,@"Resource removing failed");
+    XCTAssertTrue(result,@"Resource removing failed");
 
     resource = [testedManager resourceForNSURL:pathURL];
 
-    STAssertNotNil(resource, @"Resource cannot be nil for path %@",resourcePath);
-    STAssertTrue(resource.status == MKStatusNotDownloaded, @"Resource status should be MKStatusNotDownloaded");
-    STAssertNil([resource data], @"Resource data should be nil");
+    XCTAssertNotNil(resource, @"Resource cannot be nil for path %@",resourcePath);
+    XCTAssertTrue(resource.status == MKStatusNotDownloaded, @"Resource status should be MKStatusNotDownloaded");
+    XCTAssertNil([resource data], @"Resource data should be nil");
 
     NSString* timeoutResourcePath = @"timeoutResPath";
     NSString* encTimeoutPath = [MKResourceUtility URLEncode:timeoutResourcePath];
     NSURL* timeoutPathURL = [NSURL URLWithString:encTimeoutPath];
     MKResource* timeoutResource = [testedManager resourceForNSURL:timeoutPathURL];
     timeoutResource.expirationPeriod = 0.1;
-    STAssertNotNil(timeoutResource, @"Timeout resource should not be nil");
+    XCTAssertNotNil(timeoutResource, @"Timeout resource should not be nil");
     NSData* timeoutResData = [timeoutResourcePath dataUsingEncoding:NSUTF8StringEncoding];
-    [testedManager didFinishDownloadResource:timeoutResource data:timeoutResData error:nil httpResponse:nil];
+    tempFile = [NSTemporaryDirectory() stringByAppendingPathComponent:[NSString stringWithFormat:@"%f",[NSDate timeIntervalSinceReferenceDate]]];
+    tempFileUrl = [NSURL fileURLWithPath:tempFile];
+    [timeoutResData writeToURL:tempFileUrl atomically:YES];
+    [testedManager didFinishDownloadResource:timeoutResource dataFileURL:tempFileUrl error:nil httpResponse:nil];
     NSData* timeoutResDataFromManager = [timeoutResource data];
-    STAssertNotNil(timeoutResDataFromManager, @"Timeout resource data should not be nil");
+    XCTAssertNotNil(timeoutResDataFromManager, @"Timeout resource data should not be nil");
 
     [[NSRunLoop currentRunLoop] runMode:NSDefaultRunLoopMode beforeDate:[NSDate dateWithTimeIntervalSinceNow:3.0]];
 
-    MKResourceManager* anotherManager = [[MKResourceManager alloc] initWithKey:@"anotherManager" pathCache:dirPath];
+    MKResourceManager* anotherManager = [[MKResourceManager alloc] initWithKey:@"anotherManager" pathCache:dirPath supportBackgroundLoading:NO];
     MKResource* anotherTimeoutResource = [anotherManager resourceForNSURL:timeoutPathURL];
     NSData* anotherTimeoutResourceData = [anotherTimeoutResource data];
-    STAssertNil(anotherTimeoutResourceData, @"Now timeout resource data should be nil");
+    XCTAssertNil(anotherTimeoutResourceData, @"Now timeout resource data should be nil");
 
     [[NSFileManager defaultManager] removeItemAtPath:dirPath error:nil];
 }
@@ -118,7 +124,7 @@
     NSString* notValidURL = @"http://www.NOT_VALID_URL/not_valid_image.JPG";
 	NSMutableArray* imagesURLs = [NSMutableArray arrayWithObjects:
                                   @"http://upload.wikimedia.org/wikipedia/commons/e/e1/ARS_copper_rich_foods.jpg",
-                                  @"http://www.apps4rent.com/images/apple-products-for-business.jpg",
+                                  @"http://en.wikipedia.org/wiki/Food#mediaviewer/File:Good_Food_Display_-_NCI_Visuals_Online.jpg",
                                   @"http://www.bigfoto.com/themes/food/food-fruits-photo.jpg",
                                   @"http://viewallpaper.com/wp-content/uploads/2013/07/Images-Water-Wallpaper.jpg",
                                   @"http://www.nt.gov.au/dpifm/Primary_Industry/Content/Image/horticulture/vegetables/tomatoes_with_no_background(1).JPG",
@@ -129,8 +135,9 @@
     
     NSString* dirPath = NSTemporaryDirectory();
 	dirPath = [dirPath stringByAppendingPathComponent:@"TestDir"];
+    [[NSFileManager defaultManager] removeItemAtPath:dirPath error:NULL];
 	
-	MKResourceManager* testedManager = [[MKResourceManager alloc] initWithKey:@"abcdefjxyz" pathCache:dirPath];
+	MKResourceManager* testedManager = [[MKResourceManager alloc] initWithKey:@"abcdefjxyz" pathCache:dirPath supportBackgroundLoading:NO];
     [testedManager resume];
     
     for (NSString* urlString in _imagesURLs) {
@@ -147,7 +154,7 @@
 		[[NSRunLoop currentRunLoop] runMode:NSDefaultRunLoopMode beforeDate:[NSDate dateWithTimeIntervalSinceNow:1]];
 	} while (!_finish);
 
-    STAssertTrue(_downloadCompletedImagesCount == _imagesCount, @"");
+    XCTAssertTrue(_downloadCompletedImagesCount == _imagesCount, @"");
     
     for (NSString* urlString in _imagesURLs) {
         BOOL notValid = [urlString isEqualToString:notValidURL];
@@ -155,11 +162,11 @@
         NSError* error = nil;
         MKResource* r = [testedManager resourceForNSURL:url];
         if (notValid) {
-            STAssertNil([r data:&error], @"");
+            XCTAssertNil([r data:&error], @"");
         } else {
-            STAssertNotNil([r data:&error], @"");
+            XCTAssertNotNil([r data:&error], @"");
         }
-        STAssertNil(error, @"");
+        XCTAssertNil(error, @"");
     }
     
     _imagesURLs = nil;
@@ -173,8 +180,8 @@
         NSURL* url = [NSURL URLWithString:urlString];
         NSError* error = nil;
         MKResource* r = [manager resourceForNSURL:url];
-        STAssertNil([r data:&error], @"");
-        STAssertNotNil(error, @"");
+        XCTAssertNil([r data:&error], @"");
+        XCTAssertNotNil(error, @"");
     }
 }
      
@@ -182,7 +189,7 @@
 
 - (void)resourceStatusDidChange:(MKResource*)resource {
     if (resource.status == MKStatusDownloaded) {
-        STAssertNotNil(resource.lastResponse, @"");
+        XCTAssertNotNil(resource.lastResponse, @"");
     }
 }
 
@@ -196,7 +203,7 @@
         _finish = YES;
     }
     if (error == nil) {
-        STAssertNotNil(resource.lastResponse, @"");
+        XCTAssertNotNil(resource.lastResponse, @"");
     }
 }
 
