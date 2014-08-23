@@ -21,6 +21,7 @@
 		47482ADC17D8A42200144780 /* AESUtil.m in Sources */ = {isa = PBXBuildFile; fileRef = 47482ADB17D8A42200144780 /* AESUtil.m */; };
 		47482AE117D8AEAA00144780 /* MKResourceManagerTest.m in Sources */ = {isa = PBXBuildFile; fileRef = 47482ADE17D8AEAA00144780 /* MKResourceManagerTest.m */; };
 		47482AE217D8AEAA00144780 /* MKTestResource.m in Sources */ = {isa = PBXBuildFile; fileRef = 47482AE017D8AEAA00144780 /* MKTestResource.m */; };
+		92FCADB019A88ACF00C41F30 /* MKResourceDownloadWork.m in Sources */ = {isa = PBXBuildFile; fileRef = 92FCADAF19A88ACF00C41F30 /* MKResourceDownloadWork.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -74,6 +75,8 @@
 		47482ADE17D8AEAA00144780 /* MKResourceManagerTest.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = MKResourceManagerTest.m; sourceTree = "<group>"; };
 		47482ADF17D8AEAA00144780 /* MKTestResource.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MKTestResource.h; sourceTree = "<group>"; };
 		47482AE017D8AEAA00144780 /* MKTestResource.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = MKTestResource.m; sourceTree = "<group>"; };
+		92FCADAE19A88ACF00C41F30 /* MKResourceDownloadWork.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MKResourceDownloadWork.h; sourceTree = "<group>"; };
+		92FCADAF19A88ACF00C41F30 /* MKResourceDownloadWork.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = MKResourceDownloadWork.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -144,6 +147,8 @@
 				47482ACE17D8A20C00144780 /* MKResourceUtility.h */,
 				47482ACF17D8A20C00144780 /* MKResourceUtility.m */,
 				47482AD017D8A20C00144780 /* MKResourceUtility+Private.h */,
+				92FCADAE19A88ACF00C41F30 /* MKResourceDownloadWork.h */,
+				92FCADAF19A88ACF00C41F30 /* MKResourceDownloadWork.m */,
 				47482ADA17D8A42200144780 /* AESUtil.h */,
 				47482ADB17D8A42200144780 /* AESUtil.m */,
 				47482A9517D89A9700144780 /* Supporting Files */,
@@ -285,6 +290,7 @@
 				47482ACA17D89B4B00144780 /* MKResourcesController.m in Sources */,
 				47482ACD17D8A0F700144780 /* MKResourceBuffer.m in Sources */,
 				47482AD117D8A20C00144780 /* MKResourceUtility.m in Sources */,
+				92FCADB019A88ACF00C41F30 /* MKResourceDownloadWork.m in Sources */,
 				47482ADC17D8A42200144780 /* AESUtil.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -408,6 +414,7 @@
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = "MKResourceManager/MKResourceManager-Prefix.pch";
 				INFOPLIST_FILE = "MKResourceManagerTests/MKResourceManagerTests-Info.plist";
+				IPHONEOS_DEPLOYMENT_TARGET = 6.0;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Debug;
@@ -423,6 +430,7 @@
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = "MKResourceManager/MKResourceManager-Prefix.pch";
 				INFOPLIST_FILE = "MKResourceManagerTests/MKResourceManagerTests-Info.plist";
+				IPHONEOS_DEPLOYMENT_TARGET = 6.0;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Release;

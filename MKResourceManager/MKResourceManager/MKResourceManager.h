@@ -34,6 +34,9 @@
  @endcode
  */
 
+typedef void (^CompletionHandlerType)();
+
+
 @interface MKResourceManager : NSObject {
     NSMutableDictionary*    _workDictionary;
     NSMutableDictionary*    _statusByURL;
@@ -120,7 +123,20 @@
  */
 - (void)resume;
 
+/**
+ * In app delegate methods for iOS background downloads use this method to set completion handler for
+ * session with identifier equal to MKResourceManager.backgroundSessionIdentifier.
+ * Example:
+ - (void)application:(UIApplication *)application handleEventsForBackgroundURLSession:(NSString *)identifier completionHandler:(void (^)())completionHandler
+ {
+    MKResourceManager* resourceManager = self.context.mediaResourceManager;
+    if ([resourceManager.backgroundSessionIdentifier isEqualToString:identifier]) {
+        [resourceManager addCompletionHandler:completionHandler];
+    }
+ }
+ */
+- (void)addCompletionHandler:(CompletionHandlerType)handler;
+
 @end
 
 
-typedef void (^CompletionHandlerType)();

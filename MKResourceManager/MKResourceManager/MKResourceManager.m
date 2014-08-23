@@ -8,11 +8,15 @@
 
 #import "MKResourceManager.h"
 #import "MKResourceManager+Private.h"
+#import "MKResourceDownloadWork.h"
 #import "AESUtil.h"
 #import "MKResource+Private.h"
 #import "MKResourceUtility.h"
 #import "MKResourceUtility+Private.h"
 #import "MKCustomResource.h"
+#import <UIKit/UIKit.h>
+
+#define SYSTEM_VERSION_GREATER_THAN_OR_EQUAL_TO(v)  ([[[UIDevice currentDevice] systemVersion] compare:v options:NSNumericSearch] != NSOrderedAscending)
 
 NSString* const MKMediaResourceSavedResourcesFileName           = @"ResourceInfo.plist";
 NSUInteger const MKMediaResourceMaxConcurrentDownloadsCount     = 10;
@@ -89,18 +93,26 @@ NSUInteger const MKMediaResourceMaxConcurrentDownloadsCount     = 10;
 
 - (void)suspend {
     _suspended = YES;
-    for (NSURLSessionDownloadTask* downloadTask in [_workDictionary allValues]) {
-        [downloadTask suspend];
-//        MKResource* resource = [self resourceForNSURL:downloadTask.originalRequest.URL];
-//        [self cancelDownloadResource:resource];
+    if (SYSTEM_VERSION_GREATER_THAN_OR_EQUAL_TO(@"7.0")) {
+        for (NSURLSessionDownloadTask* downloadTask in [_workDictionary allValues]) {
+            [downloadTask suspend];
+        }
+    }
+    else {
+        for (MKResourceDownloadWork* work in [_workDictionary allValues]) {
+            [self cancelDownloadResource:[work resource]];
+        }
     }
 }
 
 - (void)resume {
     _suspended = NO;
-    for (NSURLSessionDownloadTask* downloadTask in [_workDictionary allValues]) {
-        [downloadTask resume];
+    if (SYSTEM_VERSION_GREATER_THAN_OR_EQUAL_TO(@"7.0")) {
+        for (NSURLSessionDownloadTask* downloadTask in [_workDictionary allValues]) {
+            [downloadTask resume];
+        }
     }
+
     for (MKResource* resource in _suspendedResources) {
         [self startDownloadResource:resource];
     }
@@ -212,19 +224,29 @@ NSUInteger const MKMediaResourceMaxConcurrentDownloadsCount     = 10;
     if ([resource isKindOfClass:[MKCustomResource class]]) {
         [(MKCustomResource*)resource startCustomDownload];
     } else {
-        NSMutableURLRequest *dataRequest = [NSMutableURLRequest requestWithURL:resource.resourceURL cachePolicy:NSURLRequestReturnCacheDataElseLoad timeoutInterval:60];
-
-        NSURLSessionDownloadTask* downloadTask = [self.URLSession downloadTaskWithRequest:dataRequest];
-        
-        if (downloadTask == nil) {
-            [resource didFinishDownloadMR:nil error:nil httpResponse:nil];
-        } else {
-            NSLog(@"Start loading url:%@", resource.resourceURL);//Info
+        if (SYSTEM_VERSION_GREATER_THAN_OR_EQUAL_TO(@"7.0")) {
+            NSMutableURLRequest *dataRequest = [NSMutableURLRequest requestWithURL:resource.resourceURL cachePolicy:NSURLRequestReturnCacheDataElseLoad timeoutInterval:60];
+            
+            [resource notifyWillStartDownload:dataRequest];
+            
+            NSURLSessionDownloadTask* downloadTask = [self.URLSession downloadTaskWithRequest:dataRequest];
+            
+            if (downloadTask == nil) {
+                [resource didFinishDownloadMR:nil error:nil httpResponse:nil];
+            } else {
+                NSLog(@"Start loading url:%@", resource.resourceURL);//Info
+            }
+            
+            [_workDictionary setObject:downloadTask forKey:[resource.resourceURL absoluteString]];
+            
+            [downloadTask resume];
         }
-        
-        [_workDictionary setObject:downloadTask forKey:[resource.resourceURL absoluteString]];
- 
-        [downloadTask resume];
+        else {
+            MKResourceDownloadWork* work = [[MKResourceDownloadWork alloc] init];
+            [_workDictionary setObject:work forKey:[resource.resourceURL absoluteString]];
+            [work startDownloadWork:resource manager:self httpClient:_httpClient];
+        }
+
         
         //        [[MKNetworkActivity sharedInstance] incrementLoadingItems];
     }
@@ -250,8 +272,15 @@ NSUInteger const MKMediaResourceMaxConcurrentDownloadsCount     = 10;
             [(MKCustomResource*) resource cancelCustomDownload];
         } else {
             //            [[MKNetworkActivity sharedInstance] decrementLoadingItems];
-            NSURLSessionDownloadTask* downloadTask = [_workDictionary objectForKey:[resource.resourceURL absoluteString]];
-            [downloadTask cancel];
+            if (SYSTEM_VERSION_GREATER_THAN_OR_EQUAL_TO(@"7.0")) {
+                NSURLSessionDownloadTask* downloadTask = [_workDictionary objectForKey:[resource.resourceURL absoluteString]];
+                [downloadTask cancel];
+            }
+            else {
+                MKResourceDownloadWork* work = (MKResourceDownloadWork*)[_workDictionary objectForKey:[resource.resourceURL absoluteString]];
+                [work cancelLoading];
+            }
+
             [_workDictionary removeObjectForKey:[resource.resourceURL absoluteString]];
         }
         
@@ -516,12 +545,10 @@ NSUInteger const MKMediaResourceMaxConcurrentDownloadsCount     = 10;
 - (void)URLSessionDidFinishEventsForBackgroundURLSession:(NSURLSession *)session
 {
     NSLog(@"Background URL session %@ finished events.\n", session);
-    
-    if (session.configuration.identifier)
-        [self callCompletionHandlerForSession:session.configuration.identifier];
+    [self callCompletionHandlerIfFinished];
 }
 
-- (void)addCompletionHandler:(CompletionHandlerType)handler forSession:(NSString *)identifier
+- (void)addCompletionHandler:(CompletionHandlerType)handler
 {
     if (self.backgroundSessionCompletionHandler != NULL) {
         NSLog(@"Error: Got multiple handlers for a single session identifier.  This should not happen.\n");
@@ -530,11 +557,16 @@ NSUInteger const MKMediaResourceMaxConcurrentDownloadsCount     = 10;
     self.backgroundSessionCompletionHandler = handler;
 }
 
-- (void)callCompletionHandlerForSession:(NSString *)identifier
+- (void)callCompletionHandlerIfFinished
 {
-    if (self.backgroundSessionCompletionHandler != NULL) {
-        self.backgroundSessionCompletionHandler();
-    }
+    [[self URLSession] getTasksWithCompletionHandler:^(NSArray *dataTasks, NSArray *uploadTasks, NSArray *downloadTasks) {
+        NSUInteger count = [dataTasks count] + [uploadTasks count] + [downloadTasks count];
+        if (count == 0) {
+            if (self.backgroundSessionCompletionHandler != NULL) {
+                self.backgroundSessionCompletionHandler();
+            }
+        }
+    }];
 }
 
 - (void)URLSession:(NSURLSession *)session downloadTask:(NSURLSessionDownloadTask *)downloadTask didFinishDownloadingToURL:(NSURL *)location
@@ -544,11 +576,11 @@ NSUInteger const MKMediaResourceMaxConcurrentDownloadsCount     = 10;
     }
     
     MKResource* resource = [self resourceForNSURL:downloadTask.originalRequest.URL];
-
+    
     NSHTTPURLResponse* httpResponse = (NSHTTPURLResponse*)downloadTask.response;
     
     NSInteger statusCode = [httpResponse statusCode];
-
+    
     if ((statusCode / 100) == 2) {
         // status 200, OK
         [self didFinishDownloadResource:resource dataFileURL:location error:downloadTask.error httpResponse:httpResponse];
@@ -562,6 +594,9 @@ NSUInteger const MKMediaResourceMaxConcurrentDownloadsCount     = 10;
         //			[self.httpClient request:self.urlRequest didFailWithError:mediaError responce:self.urlResponse];
         //        }
     }
+    
+    [self callCompletionHandlerIfFinished];
+    
 }
 
 - (void)URLSession:(NSURLSession *)session downloadTask:(NSURLSessionDownloadTask *)downloadTask didWriteData:(int64_t)bytesWritten totalBytesWritten:(int64_t)totalBytesWritten totalBytesExpectedToWrite:(int64_t)totalBytesExpectedToWrite
@@ -570,7 +605,7 @@ NSUInteger const MKMediaResourceMaxConcurrentDownloadsCount     = 10;
     
     NSInteger statusCode = [httpResponse statusCode];
     NSDictionary* dict = [httpResponse allHeaderFields];
-//    NSLog(@"response headers = %@ with status code: %ld", dict, (long)statusCode);//Info
+    //    NSLog(@"response headers = %@ with status code: %ld", dict, (long)statusCode);//Info
     
     NSString* contentType = [dict objectForKey:@"Content-Type"];
     if (contentType == nil || [contentType isEqualToString:@""]) {
@@ -587,7 +622,7 @@ NSUInteger const MKMediaResourceMaxConcurrentDownloadsCount     = 10;
     if (code == 2) {
         [resource setDownloadedLength:totalBytesWritten];
     }
-
+    
 }
 
 - (void)URLSession:(NSURLSession *)session task:(NSURLSessionTask *)task didCompleteWithError:(NSError *)error
